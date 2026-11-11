@@ -9,7 +9,6 @@
   },
   "scripts": {
     "start": "node server.js",
-    "send": "node host-client.js",
-    "worker": "node host-client.js --worker"
+    "worker": "node host-client.js"
   }
 }

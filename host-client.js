@@ -2,7 +2,6 @@ const ollamaUrl = process.env.OLLAMA_URL ?? "http://127.0.0.1:11434";
 const ollamaModel = process.env.OLLAMA_MODEL ?? "llama3.2";
 const receiverUrl = process.env.RECEIVER_URL;
 const receiverToken = process.env.RECEIVER_TOKEN;
-const question = process.argv.slice(2).join(" ").trim();
 
 if (!receiverUrl) {
   console.error("RECEIVER_URL is required.");
@@ -47,7 +46,7 @@ async function sendResponse(questionData, answer) {
   });
 }
 
-async function runWorker() {
+async function run() {
   console.log(`Host worker started. Polling ${receiverUrl} for questions.`);
   while (true) {
     try {
@@ -69,20 +68,9 @@ async function runWorker() {
   }
 }
 
-async function runOneQuestion() {
-  if (!question) {
-    console.error('Usage: npm run send -- "your question" or npm run worker');
-    process.exit(1);
-  }
-  const answer = await askOllama(question);
-  const published = await sendResponse({ question }, answer);
-  console.log(JSON.stringify({ ...published, response: answer }, null, 2));
-}
-
 try {
-  if (process.argv[2] === "--worker") await runWorker();
-  else await runOneQuestion();
+  await run();
 } catch (error) {
-  console.error(`Unable to send LLM response: ${error.message}`);
+  console.error(`Host worker stopped: ${error.message}`);
   process.exit(1);
 }

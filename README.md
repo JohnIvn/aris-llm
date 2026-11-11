@@ -2,7 +2,7 @@
 
 This project has two Node.js scripts:
 
-- `host-client.js` runs on the machine that has Ollama. Its worker polls Railway for questions, asks local Ollama, then publishes the answer back to Railway.
+- `host-client.js` runs continuously on the machine that has Ollama. It does not create questions. It polls Railway for questions created by SSH, mobile, or another client, asks local Ollama, then publishes only the answer back to Railway.
 - `server.js` runs on Railway. It queues SSH questions at `POST /api/questions`, receives responses at `POST /api/llm-response`, and publishes responses through `GET /api/responses/stream`.
 
 ## Deploy the receiver to Railway
@@ -29,7 +29,7 @@ npm run worker
 
 The host script uses `http://127.0.0.1:11434` by default. Override it with `OLLAMA_URL` if needed.
 
-Keep the worker running on the Ollama machine. From the Railway SSH console, queue a question:
+Keep the worker running on the Ollama machine. From the Railway SSH console, another client, or your mobile app, queue a question:
 
 ```sh
 curl -X POST http://127.0.0.1:$PORT/api/questions \
@@ -39,3 +39,11 @@ curl -X POST http://127.0.0.1:$PORT/api/questions \
 ```
 
 The worker receives the question, Ollama generates the answer, and the answer appears in Railway deployment logs.
+
+The worker is started with:
+
+```powershell
+npm run worker
+```
+
+Do not pass a question to `host-client.js`; questions must be sent to Railway through `POST /api/questions`.
