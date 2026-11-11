@@ -1,0 +1,29 @@
+#!/bin/sh
+
+if [ "$#" -eq 0 ]; then
+  echo 'Usage: Q "your question"' >&2
+  exit 1
+fi
+
+QUESTION="$*"
+
+node -e '
+const question = process.argv[1];
+const headers = { "Content-Type": "application/json" };
+if (process.env.RECEIVER_TOKEN) {
+  headers.Authorization = `Bearer ${process.env.RECEIVER_TOKEN}`;
+}
+
+fetch(`http://127.0.0.1:${process.env.PORT}/api/questions`, {
+  method: "POST",
+  headers,
+  body: JSON.stringify({ question }),
+}).then(async (response) => {
+  const body = await response.text();
+  console.log(`${response.status} ${body}`);
+  process.exit(response.ok ? 0 : 1);
+}).catch((error) => {
+  console.error(error.message);
+  process.exit(1);
+});
+' "$QUESTION"

@@ -32,13 +32,12 @@ The host script uses `http://127.0.0.1:11434` by default. Override it with `OLLA
 Keep the worker running on the Ollama machine. From the Railway SSH console, another client, or your mobile app, queue a question:
 
 ```sh
-curl -X POST http://127.0.0.1:$PORT/api/questions \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_RECEIVER_TOKEN" \
-  -d '{"question":"What is the status of my request?"}'
+Q "What is the status of my request?"
 ```
 
 The worker receives the question, Ollama generates the answer, and the answer appears in Railway deployment logs.
+
+`Q` automatically uses the `RECEIVER_TOKEN` Railway variable when authentication is enabled.
 
 The worker is started with:
 
