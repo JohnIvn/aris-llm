@@ -2,8 +2,8 @@
 
 This project has two Node.js scripts:
 
-- `host-client.js` runs on the machine that has Ollama. It asks the local Ollama API for an answer, then publishes that answer to Railway.
-- `server.js` runs on Railway. It receives responses at `POST /api/llm-response`, returns the latest response at `GET /api/latest`, and publishes responses to connected clients through `GET /api/responses/stream`.
+- `host-client.js` runs on the machine that has Ollama. Its worker polls Railway for questions, asks local Ollama, then publishes the answer back to Railway.
+- `server.js` runs on Railway. It queues SSH questions at `POST /api/questions`, receives responses at `POST /api/llm-response`, and publishes responses through `GET /api/responses/stream`.
 
 ## Deploy the receiver to Railway
 
@@ -24,7 +24,18 @@ PowerShell:
 $env:RECEIVER_URL = "https://your-service.up.railway.app"
 $env:RECEIVER_TOKEN = "your-token" # omit if not configured
 $env:OLLAMA_MODEL = "llama3.2"      # optional
-npm run send -- "What is the status of my request?"
+npm run worker
 ```
 
 The host script uses `http://127.0.0.1:11434` by default. Override it with `OLLAMA_URL` if needed.
+
+Keep the worker running on the Ollama machine. From the Railway SSH console, queue a question:
+
+```sh
+curl -X POST http://127.0.0.1:$PORT/api/questions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_RECEIVER_TOKEN" \
+  -d '{"question":"What is the status of my request?"}'
+```
+
+The worker receives the question, Ollama generates the answer, and the answer appears in Railway deployment logs.
