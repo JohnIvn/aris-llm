@@ -44,6 +44,7 @@ function readJson(request) {
 
 function publish(responseData) {
   const message = `data: ${JSON.stringify(responseData)}\n\n`;
+  console.log(`[${new Date().toISOString()}] Broadcasting response ${responseData.id} to ${clients.size} client(s).`);
   for (const client of clients) {
     client.write(message);
   }
@@ -51,6 +52,8 @@ function publish(responseData) {
 
 const server = createServer(async (request, response) => {
   const url = new URL(request.url ?? "/", `http://${request.headers.host ?? "localhost"}`);
+  const requestStartedAt = Date.now();
+  console.log(`[${new Date().toISOString()}] ${request.method} ${url.pathname}`);
 
   if (request.method === "GET" && url.pathname === "/health") {
     sendJson(response, 200, { ok: true });
@@ -79,6 +82,7 @@ const server = createServer(async (request, response) => {
 
   if (request.method === "POST" && url.pathname === "/api/llm-response") {
     if (!isAuthorized(request)) {
+      console.warn(`[${new Date().toISOString()}] Unauthorized response submission rejected.`);
       sendJson(response, 401, { error: "Unauthorized." });
       return;
     }
@@ -91,6 +95,7 @@ const server = createServer(async (request, response) => {
         !payload.question.trim() ||
         !payload.response.trim()
       ) {
+        console.warn(`[${new Date().toISOString()}] Invalid LLM response payload received.`);
         sendJson(response, 400, { error: "question and response are required strings." });
         return;
       }
@@ -102,17 +107,23 @@ const server = createServer(async (request, response) => {
         model: typeof payload.model === "string" ? payload.model : undefined,
         receivedAt: new Date().toISOString(),
       };
+      console.log(`[${latestResponse.receivedAt}] Question received: ${latestResponse.question}`);
+      console.log(`[${latestResponse.receivedAt}] LLM response (${latestResponse.model ?? "unknown model"}): ${latestResponse.response}`);
       publish(latestResponse);
       sendJson(response, 202, { accepted: true, id: latestResponse.id });
     } catch (error) {
+      console.error(`[${new Date().toISOString()}] Failed to process LLM response: ${error.message}`);
       sendJson(response, 400, { error: error.message });
     }
     return;
   }
 
+  console.warn(`[${new Date().toISOString()}] Route not found: ${request.method} ${url.pathname}`);
   sendJson(response, 404, { error: "Not found." });
+  console.log(`[${new Date().toISOString()}] Request completed in ${Date.now() - requestStartedAt}ms.`);
 });
 
 server.listen(port, "0.0.0.0", () => {
-  console.log(`LLM receiver listening on port ${port}`);
+  console.log(`[${new Date().toISOString()}] LLM receiver listening on port ${port}`);
+  console.log(`[${new Date().toISOString()}] Authentication: ${receiverToken ? "enabled" : "disabled"}`);
 });
